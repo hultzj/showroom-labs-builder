@@ -160,3 +160,7 @@ The chart layout, Showroom component and catalog schema come from
 [rhpds/field-sourced-content-template](https://github.com/rhpds/field-sourced-content-template)
 (vendored as a submodule)
 and [rhpds/rhdp-gitops-patterns](https://github.com/rhpds/rhdp-gitops-patterns).
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE).
