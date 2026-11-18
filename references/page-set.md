@@ -3,6 +3,8 @@
 Pages live in `content/modules/ROOT/pages/`, numbered so files sort in reading
 order. Every page must appear in `nav.adoc` (`check-lab.sh` enforces this). Put
 drafts you want kept but unpublished in `content/extra/`, outside `pages/`.
+This page describes the English pages. Translations mirror them; see
+`translations.md`.
 
 | File | Sections, in order |
 |---|---|

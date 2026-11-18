@@ -197,4 +197,124 @@ fresh
 rm "$page" && sed -i.bak '/03-module-01-intro/d' "$work"/lab/content/modules/ROOT/{nav.adoc,pages/02-details.adoc} && find "$work/lab" -name '*.bak' -delete
 expect fail "no module pages at all" --draft
 
+# translate <lang> <label>: a stand-in translation of every page, as the skill's translation step writes it.
+translate() {
+  local m="$work/lab/content/modules/$1"
+  mkdir -p "$m" && cp -R "$work/lab/content/modules/ROOT/pages" "$work/lab/content/modules/ROOT/nav.adoc" "$m/"
+  find "$m/pages" -name '*.adoc' -exec sed -i.bak "s/^Expected result/$2/" {} + && find "$m" -name '*.bak' -delete
+  sed -i.bak "s|^  - modules/ROOT/nav.adoc$|&\\n  - modules/$1/nav.adoc|" "$work/lab/content/antora.yml" && rm "$work/lab/content/antora.yml.bak"
+}
+ja="$work/lab/content/modules/ja"
+
+fresh; translate ja '期待される結果'; translate zh-cn '预期结果'
+expect pass "Japanese and Simplified Chinese translations that mirror the English pages" --draft
+
+fresh; translate fr 'Résultat attendu'
+sed -i.bak 's/^Résultat attendu/Résultat attendu :/' "$work"/lab/content/modules/fr/pages/*.adoc && find "$work/lab" -name '*.bak' -delete
+expect pass "French label with the space before the colon" --draft
+
+fresh; translate it 'Risultato atteso'
+expect fail "unsupported language directory" --draft
+
+fresh; translate ja '期待される結果'
+sed -i.bak '/modules\/ja\/nav.adoc/d' "$work/lab/content/antora.yml"
+expect fail "translation nav not listed in antora.yml" --draft
+
+fresh; translate ja '期待される結果'
+rm "$ja/pages/90-cleanup.adoc"
+expect fail "English page with no translation" --draft
+
+fresh; translate ja '期待される結果'
+printf '= 孤立\n' > "$ja/pages/50-orphan.adoc" && printf '* xref:50-orphan.adoc[孤立]\n' >> "$ja/nav.adoc"
+expect fail "translated page with no English page" --draft
+
+fresh; translate ja '期待される結果'
+sed -i.bak '/xref:90-cleanup.adoc/d' "$ja/nav.adoc"
+expect fail "translated page missing from its nav" --draft
+
+fresh; translate ja '期待される結果'
+python3 - "$ja/pages/03-module-01-intro.adoc" <<'PY2'
+import re, sys; p = sys.argv[1]; s = open(p).read()
+m = re.search(r'role="execute"[^\n]*\n----\n', s); open(p, 'w').write(s[:m.end()] + 'echo translated\n' + s[m.end():])
+PY2
+expect fail "translated page whose command differs from English" --draft
+
+fresh; translate ja '期待される結果'
+sed -i.bak 's/^期待される結果/Expected result/' "$ja/pages/03-module-01-intro.adoc"
+expect fail "translated page that kept the English Expected result label" --draft
+
+fresh; translate ja '期待される結果'
+sed -i.bak '/^== Evidence checkpoint$/d' "$ja/pages/03-module-01-intro.adoc"
+expect fail "translated page with a heading missing" --draft
+
+fresh; translate ja '期待される結果'
+printf '\nimage::ROOT:01-console.png[]\n' >> "$ja/pages/91-reference.adoc"
+expect fail "translated page with an image without alt text" --draft
+
+fresh; translate ja '期待される結果'
+find "$work/lab/content/modules/ROOT" -name '*.adoc' -exec sed -i.bak '/^\/\/ UNVERIFIED$/d' {} + && find "$work/lab" -name '*.bak' -delete
+expect fail "strict mode fails while a translation still says UNVERIFIED"
+
+fresh; translate ja '期待される結果'
+find "$work/lab/content" -name '*.adoc' -exec sed -i.bak '/^\/\/ UNVERIFIED$/d' {} + && find "$work/lab" -name '*.bak' -delete
+expect pass "verified English and Japanese pass strict mode"
+
+fresh
+printf '\n[source,bash,role="execute"]\n-----\necho verified\n-----\n\nExpected result: verified.\n' >> "$work/lab/content/modules/ROOT/pages/91-reference.adoc"
+translate ja '期待される結果'
+expect pass "translation with a five-hyphen execute block copied verbatim" --draft
+sed -i.bak 's/^echo verified$/echo changed/' "$ja/pages/91-reference.adoc"
+expect fail "translation whose five-hyphen execute block differs" --draft
+
+fresh; translate ja '期待される結果'
+sed -i.bak 's/^\[source,bash,role="execute",subs="attributes+"\]$/[source,bash,role="execute"]/' "$ja/pages/03-module-01-intro.adoc"
+expect fail "translation that drops subs=attributes+ from a command" --draft
+
+fresh; translate ja '期待される結果'
+sed -i.bak 's/^:navtitle: .*/:navtitle: 翻訳/' "$ja/pages/index.adoc"
+expect pass "translation with a translated :navtitle:" --draft
+sed -i.bak '/^:navtitle:/a\
+:lab_namespace: kube-system
+' "$ja/pages/03-module-01-intro.adoc"
+expect fail "translation that redefines a lab attribute its commands use" --draft
+
+fresh
+printf '\n[source,bash,role="execute"]\n.Command\n----\noc get pods\n----\n\nExpected result: pods.\n' >> "$work/lab/content/modules/ROOT/pages/91-reference.adoc"
+translate ja '期待される結果'
+sed -i.bak 's/^\.Command$/.コマンド/' "$ja/pages/91-reference.adoc"
+expect pass "translation with a translated block title on a command" --draft
+sed -i.bak 's/^oc get pods$/oc delete namespace production/' "$ja/pages/91-reference.adoc"
+expect fail "translation whose titled command differs" --draft
+
+fresh
+printf '\n:lab_command: oc \\\n  -n netpol-demo get pods\n' >> "$work/lab/content/modules/ROOT/pages/91-reference.adoc"
+translate ja '期待される結果'
+expect pass "translation that keeps a continued attribute value" --draft
+sed -i.bak 's/netpol-demo get pods/kube-system get pods/' "$ja/pages/91-reference.adoc"
+expect fail "translation that changes a continued attribute value" --draft
+
+fresh; translate ja '期待される結果'
+printf '\n[%%collapsible]\n====\n[source,bash]\n----\nexit 1\n----\n====\n' >> "$ja/pages/91-reference.adoc"
+expect fail "translated assertion that can exit the participant shell" --draft
+
+fresh; translate ja '期待される結果'
+printf '\n[mermaid]\n....\nflowchart LR\n  A --> B\n....\n' >> "$ja/pages/91-reference.adoc"
+expect fail "translated mermaid block" --draft
+
+fresh; translate ko '예상 결과'; translate es 'Resultado esperado'; translate de 'Erwartetes Ergebnis'
+expect pass "Korean, Spanish and German translations that mirror the English pages" --draft
+
+fresh; translate ja '期待される結果'
+sed -i.bak 's|^  - modules/ja/nav.adoc$|  - "modules/ja/nav.adoc"  # Japanese|' "$work/lab/content/antora.yml"
+expect pass "quoted, commented nav entry for a translation" --draft
+
+fresh
+printf '\n[source,bash,role="execute"]\n-----\ncat <<EOF > example.adoc\n[source,bash,role="execute"]\n----\ntrue\n----\nEOF\noc get pods\n-----\n\nExpected result: pods.\n' >> "$work/lab/content/modules/ROOT/pages/91-reference.adoc"
+translate ja '期待される結果'
+# The Expected-result check (not under test here) also trips on this heredoc, so assert on the parity message.
+differs() { local out; out=$(bash "$work/lab/scripts/check-lab.sh" --draft 2>&1) || true; grep -q 'ja/pages/91-reference.adoc: execute blocks differ' <<<"$out"; }
+if ! differs; then echo "ok   translation of a command whose heredoc contains AsciiDoc"; else echo "FAIL translation of a command whose heredoc contains AsciiDoc"; errors=1; fi
+sed -i.bak 's/^oc get pods$/oc delete namespace production/' "$ja/pages/91-reference.adoc"
+if differs; then echo "ok   translation that changes a command after a heredoc containing AsciiDoc"; else echo "FAIL translation that changes a command after a heredoc containing AsciiDoc"; errors=1; fi
+
 exit "$errors"

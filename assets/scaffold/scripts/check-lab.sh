@@ -9,8 +9,33 @@ draft=false
 [[ "${1:-}" == "--draft" ]] && draft=true
 pages=content/modules/ROOT/pages
 nav=content/modules/ROOT/nav.adoc
+all_pages=(content/modules/*/pages/*.adoc)  # English (ROOT) plus every translation
 failed=0
 fail() { printf 'check-lab: %s\n' "$*" >&2; failed=1; }
+# Supported translations and the label their pages use for "Expected result".
+expected_label() {
+  case $1 in
+    ja) echo '期待される結果' ;; ko) echo '예상 결과' ;; zh-cn) echo '预期结果' ;;
+    es) echo 'Resultado esperado' ;; de) echo 'Erwartetes Ergebnis' ;; fr) echo 'Résultat attendu' ;;
+    *) return 1 ;;
+  esac
+}
+# Every role="execute" block, in order: its attribute line, then its body up to the matching delimiter.
+execute_blocks() {
+  awk 'inb && $0 == delim { inb = 0; print "<<end of block>>"; next }
+       inb { print; next }                   # first: a body may itself contain AsciiDoc (heredocs)
+       /^\[source.*role="?execute"?/ { print; want = 1; next }
+       want && /^----+$/ { delim = $0; want = 0; inb = 1; next }
+       want && /^\[/ { print; next }        # more block attributes or an anchor: compared
+       want && /^\.[^ .]/ { next }          # a block title: prose, translated
+       { want = 0 }' "$1"
+}
+# Attribute entries other than :navtitle:, with their \ continuation lines; a translation that
+# redefined one would change its commands.
+page_attributes() {
+  awk 'cont { if (keep) print; cont = /\\$/; next }
+       /^:!?[A-Za-z0-9_][-A-Za-z0-9_]*!?:/ { keep = !/^:navtitle:/; if (keep) print; cont = /\\$/ }' "$1"
+}
 
 if grep -rIn --exclude-dir={node_modules,www,.git,.cache,evidence,.xreview} \
      --exclude=check-lab.sh --exclude=package-lock.json 'CHANGE-ME' . >&2; then
@@ -19,6 +44,34 @@ fi
 
 for page in "$pages"/*.adoc; do
   grep -Fq "xref:$(basename "$page")[" "$nav" || fail "$page is not in nav.adoc"
+done
+
+# Translations (content/modules/<lang>/) mirror the English pages one for one. Commands are not
+# translated: each page's execute blocks match the English page's exactly, so the live verification
+# of the English steps also covers the translation. Same headings, same number of Expected results.
+for dir in content/modules/*/; do
+  dir=${dir%/}; lang=${dir##*/}
+  [[ $lang == ROOT ]] && continue
+  label=$(expected_label "$lang") || { fail "$dir: unsupported language (supported: ja ko zh-cn es de fr)"; continue; }
+  entry="modules/$lang/nav\.adoc"
+  grep -Eq "^[[:space:]]*-[[:space:]]*($entry|\"$entry\"|'$entry')[[:space:]]*(#.*)?$" content/antora.yml ||
+    fail "modules/$lang/nav.adoc is not listed under nav: in content/antora.yml"
+  for en in "$pages"/*.adoc; do
+    tr="$dir/pages/${en##*/}"
+    [[ -f $tr ]] || { fail "$tr is missing; every English page needs a translation"; continue; }
+    grep -Fqs "xref:${en##*/}[" "$dir/nav.adoc" || fail "$tr is not in $dir/nav.adoc"
+    [[ "$(execute_blocks "$en")" == "$(execute_blocks "$tr")" ]] ||
+      fail "$tr: execute blocks differ from $en (copy commands verbatim; translate only prose)"
+    [[ "$(page_attributes "$en")" == "$(page_attributes "$tr")" ]] ||
+      fail "$tr: attribute entries differ from $en (only :navtitle: is translated)"
+    [[ $(grep -cE '^=+ ' "$en") == $(grep -cE '^=+ ' "$tr") ]] ||
+      fail "$tr: heading count differs from $en"
+    [[ $(grep -c '^Expected result' "$en") == $(grep -c "^$label" "$tr") ]] ||
+      fail "$tr: needs one '$label' for each 'Expected result' in $en"
+  done
+  for tr in "$dir"/pages/*.adoc; do
+    [[ -e $tr && ! -f "$pages/${tr##*/}" ]] && fail "$tr has no English page in $pages"
+  done
 done
 
 for page in "$pages"/*-module-*.adoc; do
@@ -119,7 +172,7 @@ if rendered=$(helm template lab automation/argocd --set deployer.domain=apps.exa
 fi
 
 # Participants paste collapsible assertions into their own shell: one that can `exit` must run in ( ... ).
-for page in "$pages"/*.adoc; do
+for page in "${all_pages[@]}"; do
   awk -v f="$page" '
     /^\[%collapsible\]/ { col = 1; next }
     col && /^====$/ { inex = !inex; if (!inex) col = 0; next }
@@ -148,7 +201,7 @@ fi
 
 # Screenshots are live-captured evidence; each needs alt text for screen readers: the first
 # positional attribute, or alt=, and not blank.
-for page in "$pages"/*.adoc; do
+for page in "${all_pages[@]}"; do
   awk -v f="$page" '
     /^image::[^[]+\[/ {
       inner = $0; sub(/^image::[^[]*\[/, "", inner); sub(/\][^]]*$/, "", inner)
@@ -163,11 +216,11 @@ for page in "$pages"/*.adoc; do
 done
 
 # The field-content Showroom builder (quay.io/rhpds/antora) has no mermaid extension.
-if grep -n '^\[mermaid' "$pages"/*.adoc >&2; then
+if grep -n '^\[mermaid' "${all_pages[@]}" >&2; then
   fail "[mermaid] blocks do not render in Showroom; use a table or numbered list"
 fi
 
-if ! $draft && grep -n '^// UNVERIFIED' "$pages"/*.adoc >&2; then
+if ! $draft && grep -n '^// UNVERIFIED' "${all_pages[@]}" >&2; then
   fail "steps not yet verified on a live cluster (// UNVERIFIED)"
 fi
 

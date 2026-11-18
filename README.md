@@ -57,6 +57,7 @@ Modules:
      refused, then restore.
 Products: OpenShift 4.20+, OpenShift AI 3.x (already installed).
 Time: one track, about 60 minutes.
+Translations: Japanese and Spanish (English is always included).
 Environment: RHDP order, one dedicated cluster per participant. GitOps
 deploys the prerequisites; participants do the exercises.
 Repo Argo CD will sync: https://github.com/<you>/<lab-repo>.git (public).
@@ -78,6 +79,31 @@ The skill then works through these steps, asking you for anything it needs:
 7. **Live verification on your cluster.** It deploys the lab, walks every step
    as the participant (driving GUI steps with the Playwright browser tools),
    records what it observed, and proves the lab repeats from a clean install.
+8. **Translations, if you asked for them.** English is always the source.
+   After the live pass it can add Japanese, Korean, Simplified Chinese,
+   Spanish, German or French. Each language is a module with its own sidebar
+   tree. Commands stay byte-for-byte the same as the English ones, so the
+   English verification covers them. Have a fluent reader review each one.
+
+## Skills you can call
+
+This repository installs one skill, `showroom-labs-builder`. Call it with
+`/showroom-labs-builder` or by describing the lab work you want. It handles:
+
+| Ask it to | Example |
+|---|---|
+| Build a new lab | "Build a Showroom lab on default-deny NetworkPolicy, 45 minutes, RHDP order." |
+| Extend a lab | "Add a module on egress firewalls to my lab in this repo." |
+| Verify a lab live | "Verify this lab on my cluster as the participant and clear every UNVERIFIED step." |
+| Translate a lab | "Add Japanese and Spanish translations to this verified lab." |
+
+It uses these other skills and plugins when they are installed:
+
+| Skill or plugin | Used for |
+|---|---|
+| `showroom:verify-content` (RHDP marketplace) | Red Hat style and accessibility review of the guide (step 7) |
+| Your own review skills, such as `xreview` or `ponytail-review` | Whatever reviews your Claude Code instructions require before deploying (step 7) |
+| Playwright plugin | Driving GUI steps and taking screenshots during live verification |
 
 ## Commands in a generated lab
 
@@ -129,14 +155,15 @@ On an RHDP order, give the branch in the order instead.
 | `references/page-set.md` | Every guide page's sections, the module template, GUI steps, AsciiDoc pitfalls |
 | `references/automation-gitops.md` | Chart layout, the Showroom terminal's identity, Makefile and `verify.sh` |
 | `references/verification.md` | Preparing a test cluster and the live verification pass |
+| `references/translations.md` | Supported languages, the translation layout and its rules |
 | `assets/scaffold/` | The starter lab repository |
 | `tests/` | Self-tests for `check-lab.sh` and the scaffold's chart and automation |
 
 ## Testing the skill
 
 ```bash
-bash tests/test-check-lab.sh            # check-lab.sh contract (44 cases)
-bash tests/test-scaffold-automation.sh  # chart, Makefile, verify.sh (92 cases)
+bash tests/test-check-lab.sh            # check-lab.sh contract
+bash tests/test-scaffold-automation.sh  # chart, Makefile, verify.sh
 ```
 
 ## Security notes
@@ -154,8 +181,6 @@ bash tests/test-scaffold-automation.sh  # chart, Makefile, verify.sh (92 cases)
 
 ## Credits
 
-The guide structure follows
-[taylorjordanNC/rhai-agent-security](https://github.com/taylorjordanNC/rhai-agent-security).
 The chart layout, Showroom component and catalog schema come from
 [rhpds/field-sourced-content-template](https://github.com/rhpds/field-sourced-content-template)
 (vendored as a submodule)
