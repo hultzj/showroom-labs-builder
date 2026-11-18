@@ -11,7 +11,7 @@ A lab is three things that must agree: the **guide** (Antora pages Showroom rend
 
 ## Workflow — create a todo per step
 
-1. **Intake.** Ask for whatever is missing: topic and audience; the customer question each module answers; products and pinned versions; tracks and time budget; the test cluster; the public git repo URL Argo CD will sync. Then settle the environment with `references/environments.md`: RHDP order or pre-existing cluster, GitOps-built or participant-built, dedicated (the default) or shared. That fixes the participant identity.
+1. **Intake.** Ask for whatever is missing: topic and audience; the customer question each module answers; products and pinned versions; tracks and time budget; the test cluster; the public git repo URL Argo CD will sync; which translations, if any, besides English (Japanese, Korean, Simplified Chinese, Spanish, German, French). Then settle the environment with `references/environments.md`: RHDP order or pre-existing cluster, GitOps-built or participant-built, dedicated (the default) or shared. That fixes the participant identity.
 2. **Scaffold.** In a new git repo (Antora reads content only from git): `cp -R <this skill>/assets/scaffold/. .`, then `npm install`.
 3. **Plan.** Fill `PLAN.md`. If the lab's question names a path (egress, an API, another tenant), the plan exercises that path. Get the user's OK.
 4. **Write pages.** Follow `references/page-set.md`. Every exercise and every `role="execute"` block gets `Expected result:` plus `// UNVERIFIED` until you have seen the result live.
@@ -19,6 +19,7 @@ A lab is three things that must agree: the **guide** (Antora pages Showroom rend
 6. **Local checks.** `npm run build`, then `bash scripts/check-lab.sh --draft`.
 7. **Review before deploy.** Run the reviews the user's instructions require (e.g. xreview, ponytail-review). If the RHDP marketplace's `showroom:verify-content` skill is installed, run it too for Red Hat style and accessibility.
 8. **Deploy and verify live.** Follow `references/verification.md`. Done when strict `bash scripts/check-lab.sh` passes and a clean re-run succeeds.
+9. **Translate** (only if asked). Follow `references/translations.md`: one module per language, commands copied verbatim, then `npm run build` and strict `check-lab.sh` again.
 
 ## Rules
 
@@ -40,6 +41,7 @@ A lab is three things that must agree: the **guide** (Antora pages Showroom rend
 | GUI step without Expected result, labels from memory | Numbered clicks with labels seen live (Playwright), then a CLI read-back |
 | `oc wait` on a CR before its operator's CRD exists | Wait chain: CSV Succeeded → CR exists → Ready |
 | Bare steps, no why or checkpoint; facilitator notes in a README | Module template and page set in `page-set.md` |
+| Translated commands, or translations drafted before the English is verified | Commands verbatim (`check-lab.sh` compares them); translate after the live pass |
 | Big test harness for a small lab | Guide assertions + `verify.sh` + `check-lab.sh` |
 
 ## Files
@@ -49,4 +51,5 @@ A lab is three things that must agree: the **guide** (Antora pages Showroom rend
 - `references/page-set.md`: page sections, the module template, GUI steps, AsciiDoc idioms
 - `references/automation-gitops.md`: chart layout, terminal identity, Makefile, `verify.sh`
 - `references/verification.md`: test-cluster prep and the live pass
+- `references/translations.md`: the supported languages, the translation layout and its rules
 - `assets/scaffold/`: the starter repo
