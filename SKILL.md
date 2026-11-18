@@ -17,7 +17,7 @@ A lab is three things that must agree: the **guide** (Antora pages Showroom rend
 4. **Write pages.** Follow `references/page-set.md`. Every exercise and every `role="execute"` block gets `Expected result:` plus `// UNVERIFIED` until you have seen the result live.
 5. **Automation and GitOps.** Follow `references/automation-gitops.md`, built to the RHDP field-content template's contract (`references/field-content.md`; Helm, or Ansible-via-Helm when the stack needs it). Fill `catalog-stub.yaml`.
 6. **Local checks.** `npm run build`, then `bash scripts/check-lab.sh --draft`.
-7. **Review before deploy.** Run the reviews the user's instructions require (e.g. xreview, ponytail-review). If the RHDP marketplace's `showroom:verify-content` skill is installed, run it too for Red Hat style and accessibility.
+7. **Review before deploy.** Run the reviews the user's instructions require (e.g. ponytail-review). If the RHDP marketplace's `showroom:verify-content` skill is installed, run it too for Red Hat style and accessibility.
 8. **Deploy and verify live.** Follow `references/verification.md`. Done when strict `bash scripts/check-lab.sh` passes and a clean re-run succeeds.
 9. **Translate** (only if asked). Follow `references/translations.md`: one module per language, commands copied verbatim, then `npm run build` and strict `check-lab.sh` again.
 
