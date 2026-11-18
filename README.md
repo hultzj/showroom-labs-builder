@@ -102,7 +102,7 @@ It uses these other skills and plugins when they are installed:
 | Skill or plugin | Used for |
 |---|---|
 | `showroom:verify-content` (RHDP marketplace) | Red Hat style and accessibility review of the guide (step 7) |
-| Your own review skills, such as `xreview` or `ponytail-review` | Whatever reviews your Claude Code instructions require before deploying (step 7) |
+| Your own review skills, such as `ponytail-review` | Whatever reviews your Claude Code instructions require before deploying (step 7) |
 | Playwright plugin | Driving GUI steps and taking screenshots during live verification |
 
 ## Commands in a generated lab
