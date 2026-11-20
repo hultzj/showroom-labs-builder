@@ -20,6 +20,7 @@ A lab is three things that must agree: the **guide** (Antora pages Showroom rend
 7. **Review before deploy.** Run the reviews the user's instructions require (e.g. ponytail-review). If the RHDP marketplace's `showroom:verify-content` skill is installed, run it too for Red Hat style and accessibility.
 8. **Deploy and verify live.** Follow `references/verification.md`. Done when strict `bash scripts/check-lab.sh` passes and a clean re-run succeeds.
 9. **Translate** (only if asked). Follow `references/translations.md`: one module per language, commands copied verbatim, then `npm run build` and strict `check-lab.sh` again.
+10. **Step videos** (only if asked). Follow `references/videos.md`: copy `assets/recorder/` to `scripts/videos/`, write one step per exercise from the verified expected results, then record every module on a fresh install. A step that does not show its expected result produces no video.
 
 ## Rules
 
@@ -43,6 +44,7 @@ A lab is three things that must agree: the **guide** (Antora pages Showroom rend
 | Bare steps, no why or checkpoint; facilitator notes in a README | Module template and page set in `page-set.md` |
 | Translated commands, or translations drafted before the English is verified | Commands verbatim (`check-lab.sh` compares them); translate after the live pass |
 | Big test harness for a small lab | Guide assertions + `verify.sh` + `check-lab.sh` |
+| Step videos edited by hand, or recorded before the steps were verified | Record after the live pass with `assets/recorder/`; it publishes only steps that showed their expected result |
 
 ## Files
 
@@ -52,4 +54,6 @@ A lab is three things that must agree: the **guide** (Antora pages Showroom rend
 - `references/automation-gitops.md`: chart layout, terminal identity, Makefile, `verify.sh`
 - `references/verification.md`: test-cluster prep and the live pass
 - `references/translations.md`: the supported languages, the translation layout and its rules
+- `references/videos.md`: optional per-exercise step videos, recorded as the participant, and the terminal they require
 - `assets/scaffold/`: the starter repo
+- `assets/recorder/`: the step-video recorder, copied into a lab only when it gets videos

@@ -84,6 +84,11 @@ The skill then works through these steps, asking you for anything it needs:
    Spanish, German or French. Each language is a module with its own sidebar
    tree. Commands stay byte-for-byte the same as the English ones, so the
    English verification covers them. Have a fluent reader review each one.
+9. **Step videos, if you asked for them.** After the live pass it records one
+   short video per exercise, run for real as the participant, and embeds each
+   under its heading. A step that does not show its expected result produces
+   no video, so recording every module is also an end-to-end test. It needs
+   Playwright, ffmpeg and the console's Web Terminal (`references/videos.md`).
 
 ## Skills you can call
 
@@ -96,6 +101,7 @@ This repository installs one skill, `showroom-labs-builder`. Call it with
 | Extend a lab | "Add a module on egress firewalls to my lab in this repo." |
 | Verify a lab live | "Verify this lab on my cluster as the participant and clear every UNVERIFIED step." |
 | Translate a lab | "Add Japanese and Spanish translations to this verified lab." |
+| Record step videos | "Record a step video for every exercise in this verified lab." |
 
 It uses these other skills and plugins when they are installed:
 
@@ -156,14 +162,17 @@ On an RHDP order, give the branch in the order instead.
 | `references/automation-gitops.md` | Chart layout, the Showroom terminal's identity, Makefile and `verify.sh` |
 | `references/verification.md` | Preparing a test cluster and the live verification pass |
 | `references/translations.md` | Supported languages, the translation layout and its rules |
+| `references/videos.md` | Optional step videos: when, the terminal they need, how to record and embed them |
 | `assets/scaffold/` | The starter lab repository |
-| `tests/` | Self-tests for `check-lab.sh` and the scaffold's chart and automation |
+| `assets/recorder/` | The step-video recorder (Playwright and ffmpeg), copied into a lab that gets videos |
+| `tests/` | Self-tests for `check-lab.sh`, the scaffold's chart and automation, and the recorder |
 
 ## Testing the skill
 
 ```bash
 bash tests/test-check-lab.sh            # check-lab.sh contract
 bash tests/test-scaffold-automation.sh  # chart, Makefile, verify.sh
+bash tests/test-recorder.sh             # step-video recorder (Node.js only)
 ```
 
 ## Security notes

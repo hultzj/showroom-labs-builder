@@ -317,4 +317,50 @@ if ! differs; then echo "ok   translation of a command whose heredoc contains As
 sed -i.bak 's/^oc get pods$/oc delete namespace production/' "$ja/pages/91-reference.adoc"
 if differs; then echo "ok   translation that changes a command after a heredoc containing AsciiDoc"; else echo "FAIL translation that changes a command after a heredoc containing AsciiDoc"; errors=1; fi
 
+# Step videos: every <video src> in the built site must resolve (references/videos.md).
+video() { mkdir -p "$(dirname "$work/lab/www/modules/$1")" && echo "<video src=\"$2\" width=\"100%\" controls>" > "$work/lab/www/modules/$1"; }
+fresh
+mkdir -p "$work/lab/www/modules/_images" && touch "$work/lab/www/modules/_images/m1-ex1.mp4"
+video 03-module-01-intro.html _images/m1-ex1.mp4
+expect pass "embedded video that is in the built site" --draft
+video ja/03-module-01-intro.html ../_images/m1-ex1.mp4
+expect pass "translation embedding the English video by relative path" --draft
+video ja/03-module-01-intro.html _images/m1-ex1.mp4
+expect fail "translation pointing at its own empty _images" --draft
+video ja/03-module-01-intro.html ROOT:m1-ex1.mp4
+expect fail "video target written as a resource ID (Antora leaves it unresolved)" --draft
+fresh
+video 03-module-01-intro.html _images/m1-ex2.mp4
+expect fail "embedded video never recorded" --draft
+fresh
+video 03-module-01-intro.html https://example.com/m1-ex1.mp4
+expect pass "remote video is not checked" --draft
+fresh
+mkdir -p "$work/lab/www/modules/_images" && touch "$work/lab/www/modules/_images/m1-ex1.mp4"
+video 03-module-01-intro.html "_images/m1-ex1.mp4#t=5"
+expect pass "video with a playback offset (video::m1-ex1.mp4[start=5])" --draft
+video 03-module-01-intro.html "_images/m1-ex9.mp4#t=5"
+expect fail "missing video with a playback offset" --draft
+touch "$work/lab/www/modules/_images/exercise one.mp4"
+video 03-module-01-intro.html "_images/exercise one.mp4"
+expect pass "video whose file name has a space" --draft
+
+# A lab with the recorder: check-lab runs its check-steps.mjs against the built guide.
+built() { # built <page> <video ids...>: blocks from stdin, one per line
+  local name=$1; shift
+  { for v in "$@"; do echo "<video src=\"_images/$v.mp4\">"; done
+    while IFS= read -r b; do echo "<div class=\"listingblock execute\"><div class=\"content\"><pre><code class=\"language-bash hljs\" data-lang=\"bash\">$b</code></pre></div></div>"; done
+  } > "$work/lab/www/modules/$name.html"
+}
+fresh
+cp -R "$(dirname "$SCAFFOLD")/recorder" "$work/lab/scripts/videos"
+sed -i.bak 's/CHANGE-ME/intro/g' "$work/lab/scripts/videos/steps.mjs" && rm "$work/lab/scripts/videos/steps.mjs.bak"
+expect fail "recorder steps whose pages are not built" --draft
+mkdir -p "$work/lab/www/modules/_images" && touch "$work/lab/www/modules/_images/m1-ex1.mp4" "$work/lab/www/modules/_images/m1-ex2.mp4"
+printf 'oc -n lab-demo get pods\noc -n lab-demo get pods\n' | built 03-module-01-intro m1-ex1 m1-ex2
+echo 'oc delete namespace lab-demo' | built 90-cleanup
+expect pass "recorder steps that match the built guide" --draft
+printf 'oc -n lab-demo get pods\n' | built 03-module-01-intro m1-ex1 m1-ex2
+expect fail "recorder step asking for a block the guide no longer has" --draft
+
 exit "$errors"

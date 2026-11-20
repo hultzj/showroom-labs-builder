@@ -58,6 +58,9 @@ translation may not drift from its English page.
   `xref:ROOT:<page>.adoc[...]`.
 - **Screenshots** come from the English pass and are reused, not copied:
   `image::ROOT:03-create-project.png[<translated alt text>]`.
+- **Step videos** are reused the same way, but Antora does not resolve `ROOT:`
+  for videos: write `video::../../_images/m1-ex1.mp4[width=100%]`
+  (`videos.md`). `check-lab.sh` fails on a video that does not resolve.
 - **GUI labels.** The OpenShift console has its own translations. When the
   product UI offers the language, observe the labels with the UI set to that
   language (console: *User Preferences* → *Language*) during a Playwright pass
