@@ -121,7 +121,7 @@ const newPage = () => {
 import fs from "node:fs";
 export const chromium = { launch: async () => ({ close: async () => {}, newContext: async (opts) => (fs.appendFileSync(process.env.FAKE_CTX_LOG, JSON.stringify(opts) + "\n"), {
   exposeBinding: async () => {}, addInitScript: async () => {}, newPage: async () => newPage(), close: async () => {},
-  storageState: async ({ path }) => fs.writeFileSync(path, '{"cookies":[],"origins":[]}') }) }) };
+  storageState: async (o) => (o?.path ? fs.writeFileSync(o.path, '{"cookies":[],"origins":[]}') : { cookies: [], origins: [] }) }) }) };
 JS
 cat > "$lab/scripts/videos/rec-steps.mjs" <<'JS'
 import fs from "node:fs";
@@ -209,7 +209,7 @@ rc=0; PATH="$work/bin:$PATH" SECRET_DIR="$work/secrets" SECRET_NAMES=lab-db,lab-
 if [[ $rc -ne 0 && ! -e "$work/out/m1-ex1.mp4" ]] && grep -q "FAIL m1-ex1: secret scan" "$work/err"; then ok "...also while another required Secret does not exist yet"
 else bad "rotated Secret with a missing one: exit $rc, out: $(ls "$work/out")"; cat "$work/err"; fi
 login() { (cd "$lab/scripts/videos" && LAB_USER=participant LAB_PASSWORD_FILE="$work/pw" DOMAIN=apps.example.com FAKE_NAV_LOG="$work/nav" FAKE_CTX_LOG="$work/ctx" "$@" node login.mjs "$work/login-state.json" 2>&1); }
-rm -f "$work/nav" "$work/login-state.json"
+rm -f "$work/nav"; printf 'old' > "$work/login-state.json"; chmod 644 "$work/login-state.json"  # an earlier, looser file
 lo=$(login env) || true
 if grep -qx "https://console-openshift-console.apps.example.com/" "$work/nav" && grep -qx "https://dash.apps.example.com" "$work/nav" && grep -q "signed in: dash.apps.example.com" <<<"$lo" \
    && [[ "$(stat -f %Lp "$work/login-state.json" 2>/dev/null || stat -c %a "$work/login-state.json")" == 600 ]]; then ok "login.mjs signs in to the console and every loginTo URL, and saves the session mode 600"

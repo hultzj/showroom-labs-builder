@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { signIn } from "./auth.mjs";
-import { PAGE_TEXT, Take, browserTls, checkOffline, collectSecrets, validBlock, executeBlocks, failedChecks, fitSpeeds, inspect, loadSecrets, parseArgs, publish, readSecretWith, rel, scan, segments, selectRun, writeDebug, MAX_SECONDS, TAIL } from "./lib.mjs";
+import { PAGE_TEXT, Take, browserTls, checkOffline, collectSecrets, secretForms, validBlock, writePrivate, executeBlocks, failedChecks, fitSpeeds, inspect, loadSecrets, parseArgs, publish, readSecretWith, rel, scan, segments, selectRun, writeDebug, MAX_SECONDS, TAIL } from "./lib.mjs";
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "rec-lib-"));
 const T = (re, label = "x", kind = "ok") => ({ re, label, kind });
@@ -18,6 +18,12 @@ for (const shape of ["sha256~ABCDEFGHIJKLMNOPQRSTUVWXYZ", "key sk-ABCDEFGHIJKLMN
   assert.ok(scan([shape], []).length, `token shape missed: ${shape.slice(0, 20)}`);
 }
 assert.deepEqual(scan(["oc get pods -n demo", "sk-oai-ABC… (first ten characters)"], [pw]), []);
+// ...and in the encodings a page shows: base64 (oc get secret -o yaml), with a trailing newline, URL-encoded.
+for (const shown of [Buffer.from(pw).toString("base64"), Buffer.from(`${pw}\n`).toString("base64"), `password: ${Buffer.from(pw).toString("base64").replace(/=+$/, "")}`])
+  assert.ok(scan([shown], [pw]).includes("known secret"), `encoded secret missed: ${shown}`);
+assert.ok(scan(["login?p=p%40ss%20w%2Frd!"], ["p@ss w/rd!"]).includes("known secret"), "a URL-encoded secret was missed");
+assert.ok(scan(["u=a&p=p%40ss+w%2Frd%21"], ["p@ss w/rd!"]).includes("known secret"), "a form-encoded secret was missed");
+assert.ok(secretForms("x").includes("eA=="), "base64 form");
 
 // 2. inspect(): an exercise with no text inspected, or a page it could not read, is not clean.
 const fake = (texts, unread = 0) => ({ marks: [{ name: "x", t: 1 }], textsBy: { x: new Set(texts) }, unreadBy: { x: unread } });
@@ -69,6 +75,13 @@ assert.deepEqual(collect().missing, ["ns/created"]);
 vals.existing = "new-value-987654321"; vals.created = "created-value-456789";
 assert.deepEqual(collect().missing, []);
 assert.ok(seenVals.has("old-value-123456789") && seenVals.has("new-value-987654321"), "the original value of a rotated Secret was lost");
+
+// 5c. writePrivate(): mode 600 even over an existing world-readable file.
+const priv = path.join(tmp, "state-existing.json");
+fs.writeFileSync(priv, "old", { mode: 0o644 }); fs.chmodSync(priv, 0o644);
+writePrivate(priv, '{"cookies":[]}');
+assert.equal(fs.statSync(priv).mode & 0o777, 0o600, "an existing file kept its looser mode");
+assert.equal(fs.readFileSync(priv, "utf8"), '{"cookies":[]}');
 
 // 6. failedChecks(): re must match, absent must not, fn must return true.
 assert.deepEqual(failedChecks([{ re: "^ok$", why: "a" }, { absent: "^Error", why: "b" }, { fn: (t) => t.includes("ok"), why: "c" }], "ok"), []);

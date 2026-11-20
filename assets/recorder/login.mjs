@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import { chromium } from "playwright";
 import { signIn } from "./auth.mjs";
-import { browserTls } from "./lib.mjs";
+import { browserTls, writePrivate } from "./lib.mjs";
 import * as STEPS from "./steps.mjs";
 
 const [stateFile] = process.argv.slice(2);
@@ -25,6 +25,5 @@ const context = await browser.newContext({ ...browserTls(), viewport: { width: 1
 const page = await context.newPage();
 
 for (const t of targets) { await signIn(page, t, { user, password, idp }); console.log("signed in:", new URL(t).host); }
-await context.storageState({ path: stateFile });
-fs.chmodSync(stateFile, 0o600);
+writePrivate(stateFile, JSON.stringify(await context.storageState()));  // mode 600 before any cookie lands
 await browser.close();

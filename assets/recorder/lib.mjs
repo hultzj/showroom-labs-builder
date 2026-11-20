@@ -330,11 +330,18 @@ export function collectSecrets({ passwordFile, kubeadminFile, stateFile, secretR
   return { values: out, missing };
 }
 
+// Writes a credential-bearing file readable by its owner only, also when it already exists with a
+// looser mode: the mode is set before any content is written.
+export function writePrivate(file, data) {
+  const fd = fs.openSync(file, "w", 0o600);
+  try { fs.fchmodSync(fd, 0o600); fs.writeSync(fd, data); } finally { fs.closeSync(fd); }
+}
+
 // Failure diagnostics, only when the page text scans clean; files mode 600, outside the repository.
 export function writeDebug(dir, base, text, png, secrets) {
   if (!text || !text.trim() || scan([text], secrets).length) return false;  // unread is not clean
-  fs.writeFileSync(path.join(dir, `${base}.txt`), text, { mode: 0o600 });
-  if (png) fs.writeFileSync(path.join(dir, `${base}.png`), png, { mode: 0o600 });
+  writePrivate(path.join(dir, `${base}.txt`), text);
+  if (png) writePrivate(path.join(dir, `${base}.png`), png);
   return true;
 }
 
@@ -526,8 +533,17 @@ export function encode(input, sources, outFile, maxSeconds = MAX_SECONDS) {
 }
 
 // Visible text from every snapshot must not contain a known secret or a credential-shaped string.
+// The forms a secret can take on screen: as is, base64 (how `oc get secret -o yaml` shows it, with or
+// without the trailing newline a file value often has), URL-encoded, and form-encoded.
+export function secretForms(s) {
+  const b64 = (x) => Buffer.from(x).toString("base64");
+  const form = new URLSearchParams({ v: s }).toString().slice(2);  // form encoding: ! as %21, space as +
+  return [...new Set([s, b64(s), b64(`${s}\n`), b64(s).replace(/=+$/, ""), encodeURIComponent(s), form])];
+}
+
 export function scan(texts, secrets) {
   const hits = [];
+  secrets = secrets.filter(Boolean).flatMap(secretForms);
   const pats = [/sha256~[A-Za-z0-9_-]{20,}/, /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}/, /\bsk-[A-Za-z0-9]{20,}/, /\bsk-oai-[A-Za-z0-9_-]{16,}/, /-----BEGIN [A-Z ]*PRIVATE KEY/];
   for (const raw of texts) {
     // as shown, and with line breaks removed: a terminal wraps a long value across rows
