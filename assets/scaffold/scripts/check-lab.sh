@@ -197,6 +197,21 @@ else
   if grep -rnoF '\{' www --include='*.html' >&2; then
     fail "a backslash before a brace survived into the HTML; escape only {word} forms"
   fi
+  # Every embedded step video plays: its src resolves to a file in the built site. This catches a
+  # video never recorded, and a translation pointing at its own empty _images/ or at ROOT:<file>
+  # (Antora resolves resource IDs for images, not videos; see references/videos.md).
+  while IFS= read -r html; do
+    while IFS= read -r src; do  # one src per line: file names may contain spaces
+      file=${src%%[#?]*}  # video::x.mp4[start=5] renders src="x.mp4#t=5"
+      [[ $src == *://* || -f "$(dirname "$html")/$file" ]] && continue
+      printf '%s: <video src="%s"> is not in the built site\n' "$html" "$src" >&2
+      fail "an embedded video does not resolve; record it, or fix its video:: target"
+    done < <(grep -oE '<video src="[^"]+"' "$html" | cut -d'"' -f2)
+  done < <(find www -name '*.html')
+  # A lab with step videos: its recorder steps still match the guide (blocks, embeds, expectations).
+  if [[ -f scripts/videos/check-steps.mjs ]] && ! node scripts/videos/check-steps.mjs >&2; then
+    fail "scripts/videos/steps.mjs no longer matches the built guide; fix it, then re-record what changed"
+  fi
 fi
 
 # Screenshots are live-captured evidence; each needs alt text for screen readers: the first

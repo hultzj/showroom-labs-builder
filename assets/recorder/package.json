@@ -1,0 +1,12 @@
+{
+  "name": "lab-step-videos",
+  "private": true,
+  "description": "Records the lab's step videos (see README.md); not part of the Showroom build",
+  "type": "module",
+  "scripts": {
+    "test": "node test-lib.mjs && node test-browser.mjs && node check-steps.mjs"
+  },
+  "dependencies": {
+    "playwright": "1.64.0"
+  }
+}
